@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Make pages render at device width on mobile -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>User Profile</title>
+  <link rel="stylesheet" href="/profile.css">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Visual style for read-only fields */
+    input[readonly], input[disabled] {
+      background-color: #f0f0f0;
+      border: none;
+      pointer-events: none;
+    }
+
+    .logout-btn{
+  background:#ef4444;           /* red */
+  color:#fff;
+  border:none;
+  padding:10px 16px;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 6px 14px rgba(239,68,68,.25);
+}
+.logout-btn:hover{ filter:brightness(.95); }
+.logout-btn:active{ transform:translateY(1px); }
+
+  </style>
+</head>
+<body>
+  <header class="header">
+        <div class="logo"><img src="/source/logo.png" alt="Logo" class="logo"></div>
+        <div class="brand">CHAINX</div>
+        <div class="search-bar">
+          <i class="fas fa-bars"></i>
+          <input type="text" placeholder="Search">
+          <i class="fas fa-search"></i>
+        </div>
+        <i class="fas fa-bell notification-icon"></i>
+      </header>
+  <div class="container">
+
+ <!-- ...existing code... -->
+<div class="profile-section">
+    <img class="profile-img" src="/source/profile.png" alt="Profile">
+    <div class="user-info">
+        <h2>
+          <%= username %>
+          <span class="vip-badge">
+            <% if (vip_status == 1) { %>VIP1<% } %>
+            <% if (vip_status == 2) { %>VIP2<% } %>
+            <% if (vip_status == 3) { %>VIP3<% } %>
+          </span>
+        </h2>
+        <p>
+          Credit Score:
+          <span class="score-bar">
+            <span class="fill" style="width:<%= credit_score %>%"></span>
+          </span>
+          <b><%= credit_score %>%</b>
+        </p>
+    </div>
+</div>
+<!-- ...existing code... -->
+
+    <div class="wallet-section">
+        <h3>Wallet Account</h3>
+        <div class="wallet-balance">
+            <span class="amount"><strong>Current Balance:</strong> $<%= balance %> </span>
+            
+        </div>
+
+        <div class="earnings-tabs">
+            <button class="active-tab">Todays Earnings</button>
+            <button>Total Earnings</button>
+        </div>
+
+        <div class="earnings-details">
+            <div>
+                <p>Order Revenue</p>
+                <strong>0</strong>
+            </div>
+            <div>
+                <p>Total Earnings</p>
+                <strong>0</strong>
+            </div>
+        </div>
+    </div>
+
+    <section class="account-info">
+      <h2>Account Information</h2>
+      <div class="account-detail">
+        <p>
+          <strong>Email:</strong>
+          <input type="email" value="<%= email %>" readonly>
+        </p>
+        <p>
+          <strong>Phone Number:</strong>
+          <input type="tel" value="<%= phone_number %>" readonly>
+        </p>
+        <p><strong>Account Balance:</strong> $<%= balance %></p>
+        <p>
+          <strong>Invitation Code:</strong>
+          <input type="text" readonly value="<%= inviteCode %>">
+        </p>
+      </div>
+      <!-- Optional: Add an "Edit" button next to the section header if you want to enable editing -->
+
+        <section class="account-actions" style="margin: 24px 0;">
+  <form action="/logout" method="POST" class="logout-form" style="display:inline;">
+    <button type="submit" class="logout-btn" aria-label="Log out">
+      <i class="fas fa-sign-out-alt" style="margin-right:8px;"></i> Logout
+    </button>
+  </form>
+</section>
+    </section>
+
+  
+
+
+   
+  </div>
+   <%- include('partials/footer', { active: 'profile' }) %> <!-- for profile -->
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Make pages render at device width on mobile -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/order.css">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      /* visual cue when blocked */
+      .start-btn button[disabled]{
+        opacity: .6;
+        cursor: not-allowed;
+        filter: grayscale(20%);
+      }
+
+        .order-alert-card {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  font-size: 1.1rem;
+  color: #614700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.order-alert-card .fa-gift {
+  color: #faad14;
+  font-size: 1.4em;
+}
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo"><img src="/source/logo.png" alt="Logo" class="logo"></div>
+        <div class="brand">CHAINX</div>
+        <div class="search-bar">
+          <i class="fas fa-bars"></i>
+          <input type="text" placeholder="Search">
+          <i class="fas fa-search"></i>
+        </div>
+        <i class="fas fa-bell notification-icon"></i>
+    </header>
+
+   
+
+    <div class="container">
+
+      <div class="profile-section">
+    <img class="profile-img" src="/source/profile.png" alt="Profile">
+    <div class="user-info">
+        <h2>
+          <%= username %>
+          <span class="vip-badge">
+            <% if (vip_status == 1) { %>VIP1<% } %>
+            <% if (vip_status == 2) { %>VIP2<% } %>
+            <% if (vip_status == 3) { %>VIP3<% } %>
+          </span>
+        </h2>
+        <p>
+          Credit Score:
+          <span class="score-bar">
+            <span class="fill" style="width:<%= credit_score %>%"></span>
+          </span>
+          <b><%= credit_score %>%</b>
+        </p>
+    </div>
+</div>
+  
+
+      <div class="wallet-section">
+          <h3>Wallet Account</h3>
+          <div class="wallet-balance" id="wallet" data-balance="<%= Number(balance).toFixed(2) %>">
+              <span class="amount"><strong>Current Balance:</strong> $<%= balance %> </span>
+          </div>
+
+          <div class="earnings-tabs">
+              <button class="active-tab">Todays Earnings</button>
+              <button>Total Earnings</button>
+          </div>
+
+          <div class="earnings-details">
+              <div>
+                  <p>Order Revenue</p>
+                  <strong>0</strong>
+              </div>
+              <div>
+                  <p>Total Earnings</p>
+                  <strong>0</strong>
+              </div>
+          </div>
+      </div>
+
+      <div class="bottom-sections">
+          <a href="/order-description" class="box-link">
+              <div class="box">
+                  <span>Order Description</span>
+              </div>
+          </a>
+          <a href="/note" class="box-link">
+              <div class="box">
+                  <span>Please Note</span>
+              </div>
+          </a>
+      </div>
+      
+    <div id="order-alert" class="order-alert-card" style="display:none;">
+  <i class="fas fa-gift"></i>
+  <span id="order-alert-message"></span>
+</div>
+      <div class="start-btn">
+        <!-- start disabled by default; JS will enable if balance >= 50 -->
+        <button id="startBtn" disabled>Mining (0/50)</button>
+      </div>
+    </div>
+  </div>
+
+    <%- include('partials/footer', { active: 'order' }) %> <!-- for order -->
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<script>
+(function(){
+  const MIN_BAL = 50;
+  const startBtn = document.getElementById('startBtn');
+  const wallet   = document.getElementById('wallet');
+  const amountEl = document.querySelector('.wallet-balance .amount');
+
+  function getBalance(){
+    const v = wallet?.getAttribute('data-balance');
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function setBalance(n){
+    const fixed = Number(n).toFixed(2);
+    wallet?.setAttribute('data-balance', fixed);
+    if (amountEl){
+      amountEl.innerHTML = `<strong>Current Balance:</strong> $${fixed}`;
+    }
+  }
+
+  function updateButtonState(){
+    const bal = getBalance();
+    const allowed = bal >= MIN_BAL;
+    startBtn.disabled = !allowed;
+    startBtn.title = allowed ? '' : `Need at least $${MIN_BAL.toFixed(2)} to start`;
+  }
+
+  function showOrderAlert(message) {
+    document.getElementById('order-alert-message').innerHTML = message;
+    document.getElementById('order-alert').style.display = 'flex';
+    setTimeout(() => {
+      document.getElementById('order-alert').style.display = 'none';
+    }, 5000);
+  }
+
+  // Initial check on load
+  updateButtonState();
+
+  startBtn.addEventListener('click', async () => {
+    // Client-side guard (extra safety)
+    if (getBalance() < MIN_BAL){
+      showOrderAlert(`Your balance is below $${MIN_BAL}. Please deposit to start.`);
+      updateButtonState();
+      return;
+    }
+
+    // Prevent double click while request is in-flight
+    startBtn.disabled = true;
+
+    try {
+      const response = await fetch('/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        let alertMessage = `${data.message}`;
+        if (data.isLucky) alertMessage += ` `;
+        showOrderAlert(alertMessage);
+
+        // Update balance in UI from server-truth
+        if (data.updatedBalance != null) {
+          setBalance(data.updatedBalance);
+        }
+
+        // Update remaining text if provided
+        if (typeof data.remaining === 'number') {
+          const orderCount = 50 - data.remaining;
+          startBtn.innerText = `Mining (${orderCount}/50)`;
+        }
+      } else {
+        showOrderAlert(data.message || 'Something went wrong.');
+      }
+    } catch (err) {
+      console.error(err);
+      showOrderAlert('Server error.');
+    } finally {
+      // Re-evaluate button based on new/current balance
+      updateButtonState();
+    }
+  });
+})();
+</script>

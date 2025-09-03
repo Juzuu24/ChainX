@@ -1,0 +1,38 @@
+<footer class="tabbar">
+  <a href="/dashboard"
+     class="tabbar-item <%= active === 'dashboard' ? 'is-active' : '' %>"
+     aria-current="<%= active === 'dashboard' ? 'page' : false %>">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+  </a>
+
+   <a href="/market"
+     class="tabbar-item <%= active === 'market' ? 'is-active' : '' %>"
+     aria-current="<%= active === 'market' ? 'page' : false %>">
+    <i class="fas fa-chart-line"></i>
+    <span>Market</span>
+  </a>
+
+  <a href="/order"
+     class="tabbar-item <%= active === 'order' ? 'is-active' : '' %>"
+     aria-current="<%= active === 'order' ? 'page' : false %>">
+    <i class="fas fa-cart-plus"></i>
+    <span>Order</span>
+  </a>
+
+ 
+
+    <a href="/transactions"
+     class="tabbar-item <%= active === 'transaction' ? 'is-active' : '' %>"
+     aria-current="<%= active === 'transaction' ? 'page' : false %>">
+    <i class="fas fa-dollar-sign"></i>
+    <span>Transactions</span>
+  </a>
+
+  <a href="/profile"
+     class="tabbar-item <%= active === 'profile' ? 'is-active' : '' %>"
+     aria-current="<%= active === 'profile' ? 'page' : false %>">
+    <i class="fas fa-user"></i>
+    <span>Profile</span>
+  </a>
+</footer>
