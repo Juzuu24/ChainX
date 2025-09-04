@@ -450,16 +450,10 @@ app.post('/order', async (req, res) => {
       return res.status(403).json({ message: 'Daily limit reached (50/50)' });
     }
 
-    const [settingsRows] = await db.query(
-      `SELECT lucky_frequency, lucky_daily_limit
-      FROM user_settings
-      WHERE user_id = ?`,
-      [userId]
-    );
-    const settingsMap = Object.fromEntries(settingsRows.map(r => [r.key_name, r.val]));
-    const luckyFrequency = settingsMap.lucky_frequency ?? 5;
-    const luckyDailyLimit = settingsMap.lucky_daily_limit ?? 10;
+    // Define your lucky order numbers here (1-based, e.g., 5th, 8th, 15th order, etc.)
+    const luckyOrderNumbers = [5, 8, 15, 20]; // You can change this list as needed
 
+    // Get how many lucky orders the user has today
     const [[{ todayLuckyCount }]] = await db.query(
       `SELECT COUNT(*) AS todayLuckyCount
       FROM start_actions
@@ -467,10 +461,10 @@ app.post('/order', async (req, res) => {
       [userId]
     );
 
-    let isLuckyPlanned =
-      (countToday + 1) % luckyFrequency === 0 &&
-      todayLuckyCount < luckyDailyLimit;
+    // Lucky order logic: if (countToday + 1) is in luckyOrderNumbers
+    let isLuckyPlanned = luckyOrderNumbers.includes(countToday + 1);
 
+    // Lucky hold logic (if you want to keep the deposit requirement for lucky orders)
     const hold = req.session.luckyHold;
     if (hold?.active) {
       const required = Number(hold.required ?? 50);
@@ -519,7 +513,7 @@ app.post('/order', async (req, res) => {
 
     res.json({
       message: isLuckyPlanned
-        ? `🎉 Lucky Order! You earned $${profit}!`
+        ? `🎉 Lucky Order! You earned $${profit}!<br>🎁 Congratulations! You’ve reached the profit box. Recharge and complete your order to claim your commissions and bonuses.`
         : `Order successful. You earned $${profit}.`,
       profit: profit.toFixed(2),
       updatedBalance: updatedBalance.toFixed(2),
