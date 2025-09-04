@@ -457,6 +457,7 @@ app.post('/order', async (req, res) => {
         const luckyOrder = luckyHold.luckyOrder;
         await db.query('UPDATE lucky_orders SET is_claimed = 1 WHERE user_id = ? AND order_number = ?', [userId, luckyOrder]);
         req.session.luckyHold = null;
+        req.session.justClaimedLucky = true;
         // Continue to normal order logic
       } else {
         return res.status(403).json({
@@ -498,8 +499,13 @@ app.post('/order', async (req, res) => {
     await db.query('UPDATE signUp SET balance = ? WHERE id = ?', [updatedBalance, userId]);
     await db.query('INSERT INTO start_actions (id, isLucky) VALUES (?, ?)', [userId, 0]);
 
+    let message = `Order successful. You earned $${profit}.`;
+    if (req.session.justClaimedLucky) {
+      message = `🎁 Congratulations! You’ve reached the profit box. Recharge and complete your order to claim your commissions and bonuses.<br>Order successful. You earned $${profit}.`;
+      req.session.justClaimedLucky = false;
+    }
     res.json({
-      message: `Order successful. You earned $${profit}.`,
+      message,
       profit: profit.toFixed(2),
       updatedBalance: updatedBalance.toFixed(2),
       isLucky: false,

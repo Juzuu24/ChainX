@@ -111,16 +111,18 @@
           </a>
       </div>
       
-    <div id="order-alert" class="order-alert-card" style="display:none;">
-  <i class="fas fa-gift"></i>
-  <span id="order-alert-message"></span>
-</div>
+   
       <div class="start-btn">
         <!-- start disabled by default; JS will enable if balance >= 50 -->
         <button id="startBtn" disabled>Mining (0/50)</button>
       </div>
     </div>
   </div>
+
+   <div id="order-alert" class="order-alert-card" style="display:none;">
+  <i class="fas fa-gift"></i>
+  <span id="order-alert-message"></span>
+</div>
 
     <%- include('partials/footer', { active: 'order' }) %> <!-- for order -->
     
