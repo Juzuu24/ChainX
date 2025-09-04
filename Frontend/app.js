@@ -438,65 +438,39 @@ app.post('/order', async (req, res) => {
       });
     }
 
-    const [[{ count: countToday }]] = await db.query(
-      `SELECT COUNT(*) AS count
-      FROM start_actions
-      WHERE id = ? AND DATE(action_time) = CURDATE()`,
+
+    // --- Persistent order count logic ---
+    // Get user's current order count and last order date
+    const [[userOrderInfo]] = await db.query(
+      'SELECT current_order_count, last_order_date FROM signUp WHERE id = ?',
       [userId]
     );
-    console.log('🔢 Orders today:', countToday);
+    let orderCount = Number(userOrderInfo.current_order_count) || 0;
+    let lastOrderDate = userOrderInfo.last_order_date;
 
-    if (countToday >= 50) {
+    // If last order date is not today, do not reset orderCount (carry over unfinished orders)
+    // If you want to reset only if finished 50, you can add logic here
+
+    if (orderCount >= 50) {
       return res.status(403).json({ message: 'Daily limit reached (50/50)' });
     }
 
     // Define your lucky order numbers here (1-based, e.g., 5th, 8th, 15th order, etc.)
     const luckyOrderNumbers = [5, 8, 15, 20]; // You can change this list as needed
 
-    // Get how many lucky orders the user has today
+    // Get how many lucky orders the user has done (all time, or you can add a separate counter)
     const [[{ todayLuckyCount }]] = await db.query(
       `SELECT COUNT(*) AS todayLuckyCount
       FROM start_actions
-      WHERE id = ? AND isLucky = 1 AND DATE(action_time) = CURDATE()`,
+      WHERE id = ? AND isLucky = 1`,
       [userId]
     );
 
-    // Lucky order logic: if (countToday + 1) is in luckyOrderNumbers
-    let isLuckyPlanned = luckyOrderNumbers.includes(countToday + 1);
+    // Lucky order logic: if (orderCount + 1) is in luckyOrderNumbers
+    let isLuckyPlanned = luckyOrderNumbers.includes(orderCount + 1);
 
-    // Lucky hold logic (if you want to keep the deposit requirement for lucky orders)
-    const hold = req.session.luckyHold;
-    if (hold?.active) {
-      const required = Number(hold.required ?? 50);
-      const baseline = Number(hold.baseline ?? 0);
-
-      if (currentBalance < baseline + required) {
-        return res.status(403).json({
-          message: '🎁 Lucky bonus available! Please make a deposit of $50 first to claim this bonus lucky order.',
-          code: 'LUCKY_HOLD',
-          remaining: 50 - countToday
-        });
-      } else {
-        console.log('✅ Lucky hold satisfied. Granting lucky bonus now.');
-        req.session.luckyHold = null;
-        isLuckyPlanned = true;
-      }
-    }
-
-    if (isLuckyPlanned && !hold?.active) {
-      req.session.luckyHold = {
-        active: true,
-        baseline: currentBalance,
-        required: 50,
-        setAt: new Date().toISOString()
-      };
-      console.log('⛔ Lucky hit blocked. Hold set. Ask user to deposit +$50 to claim.');
-      return res.status(403).json({
-        message: '🎁 Lucky order hit! Please make a deposit of $50 first to claim this bonus lucky order.',
-        code: 'LUCKY_SETUP',
-        remaining: 50 - countToday
-      });
-    }
+  // Remove lucky hold logic: only allow lucky order on the exact numbers in luckyOrderNumbers
+  // If you want to require a deposit for lucky orders, you can add a check here, but do not set a hold that triggers a future lucky order
 
     const baseProfit = 0.5 * (countToday + 1);
     let profit = isLuckyPlanned ? 200 : baseProfit;
