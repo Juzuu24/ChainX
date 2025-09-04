@@ -254,6 +254,8 @@ app.post("/deposit", requireAuth, async (req, res) => {
       [amount, req.session.userId]
     );
 
+  // Do not clear luckyHold here; only admin deposit should unfreeze via balance check in /order
+
     if (updateResult.affectedRows === 0) {
       console.warn(`Balance not updated for user ID ${req.session.userId}`);
       return res.status(400).send('Balance update failed');
@@ -439,60 +441,68 @@ app.post('/order', async (req, res) => {
     }
 
 
-    // --- Persistent order count logic ---
-    // Get user's current order count and last order date
-    const [[userOrderInfo]] = await db.query(
-      'SELECT current_order_count, last_order_date FROM signUp WHERE id = ?',
-      [userId]
-    );
-    let orderCount = Number(userOrderInfo.current_order_count) || 0;
-    let lastOrderDate = userOrderInfo.last_order_date;
-
-    // If last order date is not today, do not reset orderCount (carry over unfinished orders)
-    // If you want to reset only if finished 50, you can add logic here
-
+    // Get user's current order count
+    const [[orderRow]] = await db.query('SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ?', [userId]);
+    const orderCount = Number(orderRow.orderCount);
     if (orderCount >= 50) {
       return res.status(403).json({ message: 'Daily limit reached (50/50)' });
     }
 
-    // Define your lucky order numbers here (1-based, e.g., 5th, 8th, 15th order, etc.)
-    const luckyOrderNumbers = [5, 8, 15, 20]; // You can change this list as needed
+    // Check if user is in lucky hold (button freeze)
+    if (req.session.luckyHold && req.session.luckyHold.active) {
+      // Check if balance has increased since lucky order was hit
+      const luckyHold = req.session.luckyHold;
+      if (currentBalance > (luckyHold.balanceAtHold || 0)) {
+        // Admin has deposited, clear lucky hold and mark lucky order as claimed
+        const luckyOrder = luckyHold.luckyOrder;
+        await db.query('UPDATE lucky_orders SET is_claimed = 1 WHERE user_id = ? AND order_number = ?', [userId, luckyOrder]);
+        req.session.luckyHold = null;
+        // Continue to normal order logic
+      } else {
+        return res.status(403).json({
+          message: '🎁 Congratulations! You’ve reached the profit box. Recharge and complete your order to claim your commissions and bonuses.',
+          code: 'LUCKY_HOLD',
+          freeze: true
+        });
+      }
+    }
 
-    // Get how many lucky orders the user has done (all time, or you can add a separate counter)
-    const [[{ todayLuckyCount }]] = await db.query(
-      `SELECT COUNT(*) AS todayLuckyCount
-      FROM start_actions
-      WHERE id = ? AND isLucky = 1`,
-      [userId]
-    );
+    // Get the next lucky order number for this user from lucky_orders table (set by admin)
+    const [[luckyRow]] = await db.query('SELECT order_number, is_claimed FROM lucky_orders WHERE user_id = ? AND is_claimed = 0 ORDER BY order_number ASC LIMIT 1', [userId]);
+    let isLuckyPlanned = false;
+    let luckyOrderNumber = luckyRow ? Number(luckyRow.order_number) : null;
+    if (luckyOrderNumber && orderCount + 1 === luckyOrderNumber) {
+      isLuckyPlanned = true;
+    }
 
-    // Lucky order logic: if (orderCount + 1) is in luckyOrderNumbers
-    let isLuckyPlanned = luckyOrderNumbers.includes(orderCount + 1);
+    if (isLuckyPlanned) {
+      // Set session flag to freeze button until admin deposit
+      req.session.luckyHold = { active: true, luckyOrder: luckyOrderNumber, balanceAtHold: currentBalance };
+      return res.status(403).json({
+        message: '🎁 Congratulations! You’ve reached the profit box. Recharge and complete your order to claim your commissions and bonuses.',
+        code: 'LUCKY_HOLD',
+        freeze: true
+      });
+    }
 
-  // Remove lucky hold logic: only allow lucky order on the exact numbers in luckyOrderNumbers
-  // If you want to require a deposit for lucky orders, you can add a check here, but do not set a hold that triggers a future lucky order
-
+    // Normal order logic
     const baseProfit = 0.5 * (orderCount + 1);
-    let profit = isLuckyPlanned ? 200 : baseProfit;
+    let profit = baseProfit;
     profit = Number(profit.toFixed(2));
-
     const updatedBalance = Number((currentBalance + profit).toFixed(2));
 
     console.log(`💰 Current Balance: ${currentBalance}`);
     console.log(`💸 Profit Earned: ${profit}`);
-    console.log(`🧾 New Balance: ${updatedBalance} (isLucky=${!!isLuckyPlanned})`);
+    console.log(`🧾 New Balance: ${updatedBalance}`);
 
-    // Increment order count and update last_order_date
-    await db.query('UPDATE signUp SET balance = ?, current_order_count = ?, last_order_date = CURDATE() WHERE id = ?', [updatedBalance, orderCount + 1, userId]);
-    await db.query('INSERT INTO start_actions (id, isLucky) VALUES (?, ?)', [userId, isLuckyPlanned ? 1 : 0]);
+    await db.query('UPDATE signUp SET balance = ? WHERE id = ?', [updatedBalance, userId]);
+    await db.query('INSERT INTO start_actions (id, isLucky) VALUES (?, ?)', [userId, 0]);
 
     res.json({
-      message: isLuckyPlanned
-        ? `🎉 Lucky Order! You earned $${profit}!<br>🎁 Congratulations! You’ve reached the profit box. Recharge and complete your order to claim your commissions and bonuses.`
-        : `Order successful. You earned $${profit}.`,
+      message: `Order successful. You earned $${profit}.`,
       profit: profit.toFixed(2),
       updatedBalance: updatedBalance.toFixed(2),
-      isLucky: !!isLuckyPlanned,
+      isLucky: false,
       remaining: 50 - (orderCount + 1)
     });
 
