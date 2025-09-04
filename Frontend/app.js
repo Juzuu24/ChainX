@@ -472,7 +472,7 @@ app.post('/order', async (req, res) => {
   // Remove lucky hold logic: only allow lucky order on the exact numbers in luckyOrderNumbers
   // If you want to require a deposit for lucky orders, you can add a check here, but do not set a hold that triggers a future lucky order
 
-    const baseProfit = 0.5 * (countToday + 1);
+    const baseProfit = 0.5 * (orderCount + 1);
     let profit = isLuckyPlanned ? 200 : baseProfit;
     profit = Number(profit.toFixed(2));
 
@@ -482,7 +482,8 @@ app.post('/order', async (req, res) => {
     console.log(`💸 Profit Earned: ${profit}`);
     console.log(`🧾 New Balance: ${updatedBalance} (isLucky=${!!isLuckyPlanned})`);
 
-    await db.query('UPDATE signUp SET balance = ? WHERE id = ?', [updatedBalance, userId]);
+    // Increment order count and update last_order_date
+    await db.query('UPDATE signUp SET balance = ?, current_order_count = ?, last_order_date = CURDATE() WHERE id = ?', [updatedBalance, orderCount + 1, userId]);
     await db.query('INSERT INTO start_actions (id, isLucky) VALUES (?, ?)', [userId, isLuckyPlanned ? 1 : 0]);
 
     res.json({
@@ -492,7 +493,7 @@ app.post('/order', async (req, res) => {
       profit: profit.toFixed(2),
       updatedBalance: updatedBalance.toFixed(2),
       isLucky: !!isLuckyPlanned,
-      remaining: 50 - (countToday + 1)
+      remaining: 50 - (orderCount + 1)
     });
 
   } catch (err) {
