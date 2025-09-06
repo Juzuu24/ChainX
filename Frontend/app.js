@@ -441,11 +441,14 @@ app.post('/order', async (req, res) => {
     }
 
 
-    // Get user's current order count
-    const [[orderRow]] = await db.query('SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ?', [userId]);
+    // Get today's order count for the user
+    const [[orderRow]] = await db.query(
+      `SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ? AND DATE(created_at) = CURDATE()`,
+      [userId]
+    );
     const orderCount = Number(orderRow.orderCount);
-    if (orderCount >= 50) {
-      return res.status(403).json({ message: 'Daily limit reached (50/50)' });
+    if (orderCount >= 30) {
+      return res.status(403).json({ message: 'Daily limit reached (30/30)' });
     }
 
     // Check if user is in lucky hold (button freeze)
@@ -501,7 +504,7 @@ app.post('/order', async (req, res) => {
 
     let message = `Order successful. You earned $${profit}.`;
     if (req.session.justClaimedLucky) {
-      message = `🎁 Congratulations! You’ve reached the profit box. Recharge and complete your order to claim your commissions and bonuses.<br>Order successful. You earned $${profit}.`;
+      message = `🎉 Congratulations! You’ve already received a bonus from your lucky order. <br>Order successful. You earned $${profit}.`;
       req.session.justClaimedLucky = false;
     }
     res.json({
@@ -509,7 +512,7 @@ app.post('/order', async (req, res) => {
       profit: profit.toFixed(2),
       updatedBalance: updatedBalance.toFixed(2),
       isLucky: false,
-      remaining: 50 - (orderCount + 1)
+      remaining: 30 - (orderCount + 1)
     });
 
   } catch (err) {
