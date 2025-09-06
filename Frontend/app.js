@@ -407,7 +407,7 @@ app.get("/order", requireAuth, async (req, res) => {
     }
     // Get today's order count
     const [[orderRow]] = await db.query(
-      `SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ? AND DATE(created_at) = CURDATE()`,
+      `SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ? AND DATE(action_time) = CURDATE()`,
       [req.session.userId]
     );
     const todayOrderCount = Number(orderRow.orderCount);
@@ -448,7 +448,7 @@ app.post('/order', async (req, res) => {
 
     // Get today's order count for the user
     const [[orderRow]] = await db.query(
-      `SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ? AND DATE(created_at) = CURDATE()`,
+      `SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ? AND DATE(action_time) = CURDATE()`,
       [userId]
     );
     const orderCount = Number(orderRow.orderCount);
