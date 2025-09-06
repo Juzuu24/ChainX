@@ -401,18 +401,23 @@ app.get("/order", requireAuth, async (req, res) => {
     console.log('Accessing order with session:', req.session);
 
     const [results] = await db.execute('SELECT username,balance,vip_status,credit_score FROM signUp WHERE id = ?', [req.session.userId]);
-
     if (results.length === 0) {
       console.log(`User with ID ${req.session.userId} not found.`);
       return res.status(404).send('User not found');
     }
-
+    // Get today's order count
+    const [[orderRow]] = await db.query(
+      `SELECT COUNT(*) AS orderCount FROM start_actions WHERE id = ? AND DATE(created_at) = CURDATE()`,
+      [req.session.userId]
+    );
+    const todayOrderCount = Number(orderRow.orderCount);
     res.render('order', {
       username: results[0].username,
       balance: results[0].balance,
       user: req.session.username,
       vip_status: results[0].vip_status,
       credit_score: results[0].credit_score,
+      todayOrderCount
     });
 
   } catch (err) {

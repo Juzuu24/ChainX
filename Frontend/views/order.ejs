@@ -115,7 +115,7 @@
 
       <div class="start-btn" style="margin-bottom: 0.5rem;">
         <!-- start disabled by default; JS will enable if balance >= 50 -->
-        <button id="startBtn" disabled>Mining (0/50)</button>
+  <button id="startBtn" disabled>Mining (<%= typeof todayOrderCount !== 'undefined' ? todayOrderCount : 0 %>/30)</button>
       </div>
       <div id="order-alert" class="order-alert-card" style="display:none; margin-top: 0.5rem; margin-bottom: 0;">
         <i class="fas fa-gift"></i>
@@ -151,11 +151,13 @@
     }
   }
 
+var orderCount = <%= Number(todayOrderCount) %>;
   function updateButtonState(){
     const bal = getBalance();
     const allowed = bal >= MIN_BAL;
     startBtn.disabled = !allowed;
     startBtn.title = allowed ? '' : `Need at least $${MIN_BAL.toFixed(2)} to start`;
+    startBtn.innerText = `Mining (${orderCount}/30)`;
   }
 
   function showOrderAlert(message) {
@@ -200,8 +202,8 @@
 
         // Update remaining text if provided
         if (typeof data.remaining === 'number') {
-          const orderCount = 50 - data.remaining;
-          startBtn.innerText = `Mining (${orderCount}/50)`;
+          orderCount = 30 - data.remaining;
+          startBtn.innerText = `Mining (${orderCount}/30)`;
         }
       } else {
         showOrderAlert(data.message || 'Something went wrong.');
