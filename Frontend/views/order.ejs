@@ -78,7 +78,7 @@
       <div class="wallet-section">
           <h3>Wallet Account</h3>
           <div class="wallet-balance" id="wallet" data-balance="<%= Number(balance).toFixed(2) %>">
-              <span class="amount"><strong>Current Balance:</strong> $<%= balance %> </span>
+              <span class="amount"><strong>Current Balance:</strong> <%= balance %> </span>
           </div>
 
           <div class="earnings-tabs">
@@ -147,7 +147,7 @@
     const fixed = Number(n).toFixed(2);
     wallet?.setAttribute('data-balance', fixed);
     if (amountEl){
-      amountEl.innerHTML = `<strong>Current Balance:</strong> $${fixed}`;
+      amountEl.innerHTML = `<strong>Current Balance:</strong> ${fixed}`;
     }
   }
 
@@ -174,7 +174,7 @@ var orderCount = <%= Number(todayOrderCount) %>;
   startBtn.addEventListener('click', async () => {
     // Client-side guard (extra safety)
     if (getBalance() < MIN_BAL){
-      showOrderAlert(`Your balance is below $${MIN_BAL}. Please deposit to start.`);
+      showOrderAlert(`Your balance is below ${MIN_BAL}. Please deposit to start.`);
       updateButtonState();
       return;
     }

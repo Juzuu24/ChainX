@@ -495,7 +495,7 @@ app.post('/order', async (req, res) => {
     }
 
     // Normal order logic
-    const baseProfit = 0.5 * (orderCount + 1);
+    const baseProfit = 5 * (orderCount + 1);
     let profit = baseProfit;
     profit = Number(profit.toFixed(2));
     const updatedBalance = Number((currentBalance + profit).toFixed(2));
@@ -507,9 +507,9 @@ app.post('/order', async (req, res) => {
     await db.query('UPDATE signUp SET balance = ? WHERE id = ?', [updatedBalance, userId]);
     await db.query('INSERT INTO start_actions (id, isLucky) VALUES (?, ?)', [userId, 0]);
 
-    let message = `Order successful. You earned $${profit}.`;
+    let message = `Order successful. You earned ${profit}.`;
     if (req.session.justClaimedLucky) {
-      message = `🎉 Congratulations! You’ve already received a bonus from your lucky order. <br>Order successful. You earned $${profit}.`;
+      message = `🎉 Congratulations! You’ve already received a bonus from your lucky order. <br>Order successful. You earned ${profit}.`;
       req.session.justClaimedLucky = false;
     }
     res.json({
